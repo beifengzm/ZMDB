@@ -15,3 +15,8 @@ struct LinkedList
 };
 
 struct LinkedList* newLinkedList();
+
+
+
+
+void fun() {}
