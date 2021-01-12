@@ -19,4 +19,4 @@ struct LinkedList* newLinkedList();
 
 
 
-void fun() {}
+void fun();
