@@ -11,19 +11,6 @@
 #include "Hash.h"
 #include "ValueObject.h"
 
-// 判断建是否存在，是否过期，是否是一个集合
-struct Set* getSetAndCheck(struct DBServer* pServer, struct DBClient* pClient)
-{
-    struct ValueObject* pOBj = getObjectAndCheck(pServer, pClient);
-    if (!pOBj) return NULL;
-    if (pOBj->type != VALUE_TYPE_SET)
-    {
-        sprintf(pClient->sendBuff, "(error) %s is not a set.", pClient->argv[1]);
-        return NULL;
-    }
-    return pOBj->value.pSet;
-}
-
 void saddCommand(struct DBServer* pServer, struct DBClient* pClient)
 {
     if (pClient->argc < 3)
@@ -32,24 +19,11 @@ void saddCommand(struct DBServer* pServer, struct DBClient* pClient)
         return;
     }
 
+    struct ValueObject* pObject = getObjectAndCreate(pServer, pClient, VALUE_TYPE_SET);
+    
     int nSuccessed = 0;
-    if (existKey(pServer->pDB->phash[pClient->db_index], 
-                pClient->argv[1]))  // 该键存在
-    {
-        struct ValueObject* pObj;
-        pObj = (struct ValueObject*)getValue(pServer->pDB->phash[pClient->db_index], 
-            pClient->argv[1]);
-        for (int i = 2; i < pClient->argc; ++i)
-            nSuccessed += addSet(pObj->value.pSet, pClient->argv[i]);
-    }
-    else  // 该键不存在,则新建
-    {
-        struct ValueObject obj;
-        initValueObject(&obj, pClient, VALUE_TYPE_SET);
-
-        nSuccessed += putKV(pServer->pDB->phash[pClient->db_index], pClient->argv[1], 
-                &obj, sizeof(struct ValueObject));
-    }
+    for (int i = 2; i < pClient->argc; ++i)
+        nSuccessed += addSet(pObject->value.pSet, pClient->argv[i]);
     pServer->changed++;
     sprintf(pClient->sendBuff, "[OK] %d", nSuccessed);
 }
@@ -71,7 +45,7 @@ void scardCommand(struct DBServer* pServer, struct DBClient* pClient)
         return;
     }
 
-    struct Set* pSet = getSetAndCheck(pServer, pClient);
+    struct Set* pSet = (struct Set*)getTypeObjectAndCheck(pServer,pClient, VALUE_TYPE_SET);
     if (pSet)
         sprintf(pClient->sendBuff, "(size) %d", sizeSet(pObj->value.pSet));
 }
@@ -119,7 +93,7 @@ void sismemberCommand(struct DBServer* pServer, struct DBClient* pClient)
         return;
     }
 
-    struct Set* pSet = getSetAndCheck(pServer, pClient);
+    struct Set* pSet = (struct Set*)getTypeObjectAndCheck(pServer,pClient, VALUE_TYPE_SET);
     if (!pSet) return;
     if (sismember(pSet, pClient->argv[2]))
         sprintf(pClient->sendBuff, "1");

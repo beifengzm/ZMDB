@@ -3,6 +3,7 @@
 
 #include "Hash.h"
 #include "Set.h"
+#include "LinkedList.h"
 #include "Database.h"
 #include "ValueObject.h"
 #include "Debug.h"
@@ -57,6 +58,11 @@ void removeMapFromDB(struct Database* pDB, const char* key, int index)
         case VALUE_TYPE_SET:
             freeSet(pObj->value.pSet);
             strcpy(typeStr, "set");
+            break;
+
+        case VALUE_TYPE_LIST:
+            freeLinkedList(pObj->value.plist);
+            strcpy(typeStr, "list");
             break;
     }
     removeKey(pDB->phash[index], key);

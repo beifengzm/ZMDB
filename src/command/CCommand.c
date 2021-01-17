@@ -11,50 +11,8 @@
 #include "Timer.h"
 #include "Debug.h"
 #include "ValueObject.h"
+#include "LinkedList.h"
 #include "ObjectTimer.h"
-
-// 删除旧的键值对(如果存在)
-void removeOldMapIfExist(struct DBServer* pServer, struct DBClient* pClient)
-{
-    struct ValueObject* pObj = getObjectAndCheck(pServer, pClient);
-
-    // 如果该键存在，则删除
-    if (pObj && pObj->type != VALUE_TYPE_SET)
-    {
-        if (pObj->pTimer)
-            removeTimer(pServer->pTimerQueue, pObj->pTimer);
-        removeMapFromDB(pServer->pDB, pClient->argv[1], pClient->db_index);
-    }
-}
-
-// 检查键是否存在或者过期
-struct ValueObject* getObjectAndCheck(struct DBServer* pServer, struct DBClient* pClient)
-{
-    struct ValueObject* pObj;
-
-    pObj = (struct ValueObject*)getValue(pServer->pDB->phash[pClient->db_index], 
-            pClient->argv[1]);
-
-    // 检查键是否存在
-    if (!pObj)
-    {
-        sprintf(pClient->sendBuff, "No corresponding key: %s", pClient->argv[1]);
-        return NULL;
-    }
-
-    if (pObj->pTimer==NULL) 
-        return pObj;
-
-    // 检查键是否过期
-    if (getNowTime() >= pObj->pTimer->when)
-    {
-        runTimer(pServer->pTimerQueue, pObj->pTimer);
-        sprintf(pClient->sendBuff, "No corresponding key: %s", pClient->argv[1]);
-        return NULL;
-    }
-
-    return pObj;
-}
 
 void delCommand(struct DBServer* pServer, struct DBClient* pClient)
 {
@@ -104,6 +62,10 @@ void keysCommand(struct DBServer* pServer, struct DBClient* pClient)
 
             case VALUE_TYPE_SET:
                 strcpy(typeStr, "set");
+                break;
+
+            case VALUE_TYPE_LIST:
+                strcpy(typeStr, "list");
                 break;
             
             default:
@@ -158,8 +120,25 @@ void getCommand(struct DBServer* pServer, struct DBClient* pClient)
             char buff[512];
             while (iterateSet(pObj->value.pSet, (void**)&tmpKey))
             {
-                zmprintf("key: %s\n", tmpKey);
                 sprintf(buff, "%d) %s\n", i, tmpKey);
+                sprintf(pClient->sendBuff+pos, "%s", buff);
+                pos += strlen(buff);
+                i++;
+            }
+            pClient->sendBuff[pos-1] = '\0';
+            break;
+        }
+
+        case VALUE_TYPE_LIST:
+        {
+            char *result;
+            sprintf(pClient->sendBuff, "(list)\n");
+            int pos = strlen(pClient->sendBuff);
+            int i = 1;
+            char buff[512];
+            while (iterateList(pObj->value.plist, (void**)&result))
+            {
+                sprintf(buff, "%d) %s\n", i, result);
                 sprintf(pClient->sendBuff+pos, "%s", buff);
                 pos += strlen(buff);
                 i++;

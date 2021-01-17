@@ -7,6 +7,7 @@ struct PriorityQueue
     unsigned int capcity;
     int (*cmp)(void*, void*);
 };
+
 // 小顶堆: <(1),other(0); 大顶堆: >(1),other(0)
 typedef int (*Comparator)(void*, void*);  
 struct PriorityQueue* newPriorityQueue(Comparator cmp);

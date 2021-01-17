@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "HashCommand.h"
 #include "CCommand.h"
@@ -20,10 +21,13 @@ void hsetCommand(struct DBServer* pServer, struct DBClient* pClient)
     // 如果该键存在，则删除
     removeOldMapIfExist(pServer, pClient);
 
-    struct ValueObject obj;
-    initValueObject(&obj, pClient, VALUE_TYPE_HASH);
+    struct ValueObject* pObject = getObjectAndCreate(pServer, pClient, VALUE_TYPE_HASH);
+    for (int i = 2; i < pClient->argc; i+=2)
+    {
+        putKV(pObject->value.pHash, pClient->argv[i],
+            pClient->argv[i+1], strlen(pClient->argv[i+1])+1);
+    }
 
-    putKV(pServer->pDB->phash[pClient->db_index], pClient->argv[1], &obj, sizeof(struct ValueObject));
     sprintf(pClient->sendBuff, "[OK] 1");
 
     pServer->changed++;

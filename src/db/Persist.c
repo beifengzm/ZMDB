@@ -13,6 +13,7 @@
 #include "Timer.h"
 #include "Hash.h"
 #include "Set.h"
+#include "LinkedList.h"
 #include "Debug.h"
 
 void saveHash(FILE* fp, struct Hash* phash)
@@ -23,7 +24,8 @@ void saveHash(FILE* fp, struct Hash* phash)
     // 存储键值
     // (VALUE_TYPE_STR) nKey key type nValue value expire
     // (VALUE_TYPE_HASH) nKey key type num nKey1 key1 nValue value1 ... expire
-    // (VALUE_TYPE_SET) nKey key type num nKey1 key1 [nKey2 key2 ...] expire
+    // (VALUE_TYPE_SET) nKey key type num nKey key1 [nKey2 key2 ...] expire
+    // (VALUE_TYPE_LIST) nKey key type num nValue1 value1 [nValue2 value2 ...] expire
     char* key, *value;
     int nKey, nValue;
     struct ValueObject* pObj;
@@ -81,6 +83,22 @@ void saveHash(FILE* fp, struct Hash* phash)
                 fwrite(&num, sizeof(int), 1, fp);
 
                 while (iterateSet(pObj->value.pSet, (void**)&key))
+                {
+                    nKey = strlen(key)+1;
+
+                    fwrite(&nKey, sizeof(unsigned int), 1, fp);
+                    fwrite(key, sizeof(char), nKey, fp);
+                }
+                break;
+            }
+
+            case VALUE_TYPE_LIST:
+            {
+                // num
+                int num = getListSize(pObj->value.plist);
+                fwrite(&num, sizeof(int), 1, fp);
+
+                while (iterateList(pObj->value.plist, (void**)&key))
                 {
                     nKey = strlen(key)+1;
 
@@ -177,6 +195,28 @@ struct Hash* loadHash(FILE* fp, struct DBServer* pServer, int index)
 
                 obj.type = type;
                 obj.value.pSet = pSet;
+                break;
+            }
+
+            case VALUE_TYPE_LIST:
+            {
+                // num
+                int num;
+                char tmpkey[512];
+                int tmpnKey;
+
+                fread(&num, sizeof(int), 1, fp);
+
+                struct LinkedList* plist = newLinkedList();
+                for (int j = 0; j < num; ++j)
+                {
+                    fread(&tmpnKey, sizeof(unsigned int), 1, fp);
+                    fread(tmpkey, sizeof(char), tmpnKey, fp);
+                    rpush(plist, tmpkey, tmpnKey);
+                }
+
+                obj.type = type;
+                obj.value.plist = plist;
                 break;
             }
                 

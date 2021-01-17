@@ -6,6 +6,7 @@
 #include "StrCommand.h"
 #include "HashCommand.h"
 #include "SetCommand.h"
+#include "ListCommand.h"
 #include "CCommand.h"
 #include "Hash.h"
 #include "Server.h"
@@ -23,6 +24,13 @@ const struct FuncMapStruct functors[] =
 {
    {"set", setCommand}, 
    {"hset", hsetCommand},
+   {"lpush", lpushCommand},
+   {"rpush", rpushCommand},
+   {"lpop", lpopCommand},
+   {"rpop", rpopCommand},
+   {"lindex", lindexCommand},
+   {"lsize", lsizeCommand},
+   {"lrange", lrangeCommand},
    {"sadd", saddCommand},
    {"scard", scardCommand},
    {"sdiff", sdiffCommand},

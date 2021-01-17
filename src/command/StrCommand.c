@@ -18,10 +18,9 @@ void setCommand(struct DBServer* pServer, struct DBClient* pClient)
 
     removeOldMapIfExist(pServer, pClient);
 
-    struct ValueObject obj;
-    initValueObject(&obj, pClient, VALUE_TYPE_STR);
+    struct ValueObject* pObject = getObjectAndCreate(pServer, pClient, VALUE_TYPE_STR);
+    strcpy(pObject->value.str, pClient->argv[2]);
 
-    putKV(pServer->pDB->phash[pClient->db_index], pClient->argv[1], &obj, sizeof(struct ValueObject));
     sprintf(pClient->sendBuff, "[OK] 1");
 
     pServer->changed++;
